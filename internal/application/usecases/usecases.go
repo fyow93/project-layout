@@ -13,7 +13,12 @@ func NewUseCase(domainService *service.DomainService) *UseCase {
 	return &UseCase{domainService: domainService}
 }
 
-func (u *UseCase) PerformAction(entity model.Entity) error {
+func (u *UseCase) Create(entity model.Entity) error {
 	// use case logic
-	return u.domainService.DoSomething(entity)
+	return u.domainService.Save(entity)
+}
+
+func (u *UseCase) FindByID(id string) (*model.Entity, error) {
+	// use case logic
+	return u.domainService.FindByID(id)
 }

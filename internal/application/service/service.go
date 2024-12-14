@@ -13,7 +13,10 @@ func NewApplicationService(useCase *usecases.UseCase) *ApplicationService {
 	return &ApplicationService{useCase: useCase}
 }
 
-func (s *ApplicationService) Execute(entity model.Entity) error {
-	// application logic
-	return s.useCase.PerformAction(entity)
+func (s *ApplicationService) ExecuteFindByID(id string) (*model.Entity, error) {
+	return s.useCase.FindByID(id)
+}
+
+func (s *ApplicationService) ExecuteCreate(entity model.Entity) error {
+	return s.useCase.Create(entity)
 }
