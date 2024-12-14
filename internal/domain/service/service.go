@@ -14,11 +14,17 @@ func NewDomainService(repo repository.Repository) *DomainService {
 }
 
 func (s *DomainService) Save(entity model.Entity) error {
-	// business logic
 	return s.repo.Save(entity)
 }
 
 func (s *DomainService) FindByID(id string) (*model.Entity, error) {
-	// business logic
 	return s.repo.FindByID(id)
+}
+
+func (s *DomainService) Update(entity model.Entity) error {
+	return s.repo.Update(entity)
+}
+
+func (s *DomainService) Delete(id string) error {
+	return s.repo.Delete(id)
 }

@@ -51,3 +51,12 @@ func (r *RepositoryImpl) Delete(id string) error {
 	_, err := r.db.Exec("DELETE FROM entities WHERE id = ?", id)
 	return err
 }
+
+func (r *RepositoryImpl) DeleteAllEntities() error {
+	_, err := r.db.Exec("DELETE FROM entities")
+	return err
+}
+
+func (r *RepositoryImpl) Shutdown() error {
+	return r.db.Close()
+}
