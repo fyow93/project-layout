@@ -15,10 +15,20 @@ func main() {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	repo := &repository.RepositoryImpl{}
+	repo, err := repository.NewRepositoryImpl("file::memory:?cache=shared")
+	if err != nil {
+		logger.Fatal("Failed to initialize database", zap.Error(err))
+	}
+
+	err = repo.Initialize()
+	if err != nil {
+		logger.Fatal("Failed to create table", zap.Error(err))
+	}
+
 	domainService := dservice.NewDomainService(repo)
-	useCase := usecases.NewUseCase(domainService)
-	appService := service.NewApplicationService(useCase)
+	useCaseFactory := usecases.NewUseCaseFactory(domainService)
+	serviceFactory := service.NewServiceFactory(useCaseFactory)
+	appService := serviceFactory.CreateApplicationService()
 	handler := http.NewHandler(appService)
 
 	router := gin.Default()
