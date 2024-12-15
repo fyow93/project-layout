@@ -21,6 +21,7 @@ import (
 	"project-layout/internal/infra/http/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 )
 
@@ -58,6 +59,11 @@ func (h *BookHandler) CreateBook(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	validate := validator.New()
+	if err := validate.Struct(book); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	if err := h.appService.ExecuteCreate(book); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -73,6 +79,11 @@ func (h *BookHandler) UpdateBook(c *gin.Context) {
 		return
 	}
 	book.ID = id
+	validate := validator.New()
+	if err := validate.Struct(book); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	if err := h.appService.ExecuteUpdate(book); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

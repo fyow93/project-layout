@@ -20,6 +20,8 @@ import (
 	"errors"
 	"project-layout/internal/domain/model"
 	"project-layout/internal/domain/service"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type BookUseCase struct {
@@ -32,78 +34,64 @@ func NewBookUseCase(domainService *service.BookService) *BookUseCase {
 
 func (u *BookUseCase) FindByID(id string) (*model.Book, error) {
 	// 业务逻辑：检查ID格式
-	if !isValidID(id) {
-		return nil, errors.New("无效的ID格式")
+	if err := validateID(id); err != nil {
+		return nil, err
 	}
 	book, err := u.bookService.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
-	// 业务逻辑：检查实体是否活跃
-	if !book.IsActive {
-		return nil, errors.New("实体未激活")
-	}
 	return book, nil
 }
 
-func (u *BookUseCase) Create(entity model.Book) error {
+func (u *BookUseCase) Create(book model.Book) error {
 	// 业务逻辑：验证实体
-	if err := validateEntity(entity); err != nil {
+	if err := model.ValidateBook(&book); err != nil {
 		return err
 	}
 	// 业务逻辑：检查实体是否已存在
-	existingEntity, _ := u.bookService.FindByID(entity.ID)
-	if existingEntity != nil {
+	existingBook, _ := u.bookService.FindByID(book.ID)
+	if existingBook != nil {
 		return errors.New("实体已存在")
 	}
-	return u.bookService.Save(entity)
+	return u.bookService.Save(book)
 }
 
-func (u *BookUseCase) Update(entity model.Book) error {
+func (u *BookUseCase) Update(book model.Book) error {
+	// 业务逻辑：验证实体
+	if err := model.ValidateBook(&book); err != nil {
+		return err
+	}
 	// 业务逻辑：检查实体是否存在
-	existingEntity, err := u.bookService.FindByID(entity.ID)
+	existingBook, err := u.bookService.FindByID(book.ID)
 	if err != nil {
 		return err
 	}
-	if existingEntity == nil {
+	if existingBook == nil {
 		return errors.New("实体不存在")
 	}
-	// 业务逻辑：验证更新数据
-	if err := validateEntity(entity); err != nil {
-		return err
-	}
-	return u.bookService.Update(entity)
+	return u.bookService.Update(book)
 }
 
 func (u *BookUseCase) Delete(id string) error {
+	// 业务逻辑：检查ID格式
+	if err := validateID(id); err != nil {
+		return err
+	}
 	// 业务逻辑：检查实体是否存在
-	entity, err := u.bookService.FindByID(id)
+	existingBook, err := u.bookService.FindByID(id)
 	if err != nil {
 		return err
 	}
-	if entity == nil {
+	if existingBook == nil {
 		return errors.New("实体不存在")
-	}
-	// 业务逻辑：检查实体是否可以删除
-	if !entity.CanBeDeleted {
-		return errors.New("实体不能删除")
 	}
 	return u.bookService.Delete(id)
 }
 
-// 辅助函数：验证实体
-func validateEntity(entity model.Book) error {
-	if entity.Title == "" {
-		return errors.New("实体名称不能为空")
-	}
-	// 添加更多验证规则
-	return nil
-}
-
-// 辅助函数：检查ID格式
-func isValidID(id string) bool {
-	// 示例：检查ID是否为UUID格式
-	return len(id) == 36
+func validateID(id string) error {
+	validate := validator.New()
+	return validate.Var(id, "required,uuid4")
 }
 
 type BookUseCaseFactory struct {
