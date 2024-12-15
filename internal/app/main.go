@@ -18,6 +18,39 @@ import (
 	"go.uber.org/zap"
 )
 
+type ServiceFactory struct {
+	db     *sql.DB
+	logger *zap.Logger
+}
+
+func NewServiceFactory(db *sql.DB, logger *zap.Logger) *ServiceFactory {
+	return &ServiceFactory{db: db, logger: logger}
+}
+
+func (f *ServiceFactory) CreateUserHandler() (*http.UserHandler, error) {
+	userRepo := repository.NewUserRepositoryImpl(f.db)
+	if err := userRepo.Initialize(); err != nil {
+		return &http.UserHandler{}, err
+	}
+	userDomainService := dservice.NewUserService(userRepo)
+	userUseCaseFactory := usecases.NewUserUseCaseFactory(userDomainService)
+	serviceFactory := service.NewServiceFactory(nil, userUseCaseFactory)
+	userService := serviceFactory.CreateUserService()
+	return http.NewUserHandler(userService), nil
+}
+
+func (f *ServiceFactory) CreateBookHandler() (*http.BookHandler, error) {
+	bookRepo := repository.NewBookRepositoryImpl(f.db)
+	if err := bookRepo.Initialize(); err != nil {
+		return &http.BookHandler{}, err
+	}
+	bookDomainService := dservice.NewBookService(bookRepo)
+	bookUseCaseFactory := usecases.NewBookUseCaseFactory(bookDomainService)
+	serviceFactory := service.NewServiceFactory(bookUseCaseFactory, nil)
+	bookService := serviceFactory.CreateBookService()
+	return http.NewBookHandler(bookService), nil
+}
+
 func main() {
 	logger, _ := middleware.NewLogger()
 	defer logger.Sync()
@@ -27,30 +60,17 @@ func main() {
 		logger.Fatal("Failed to initialize database", zap.Error(err))
 	}
 
-	userRepo := repository.NewUserRepositoryImpl(db)
-	bookRepo := repository.NewBookRepositoryImpl(db)
+	factory := NewServiceFactory(db, logger)
 
-	err = userRepo.Initialize()
+	userHandler, err := factory.CreateUserHandler()
 	if err != nil {
-		logger.Fatal("Failed to create user table", zap.Error(err))
+		logger.Fatal("Failed to initialize user handler", zap.Error(err))
 	}
 
-	err = bookRepo.Initialize()
+	bookHandler, err := factory.CreateBookHandler()
 	if err != nil {
-		logger.Fatal("Failed to create book table", zap.Error(err))
+		logger.Fatal("Failed to initialize book handler", zap.Error(err))
 	}
-
-	userDomainService := dservice.NewUserService(userRepo)
-	userUseCaseFactory := usecases.NewUserUseCaseFactory(userDomainService)
-	serviceFactory := service.NewServiceFactory(nil, userUseCaseFactory)
-	userService := serviceFactory.CreateUserService()
-	userHandler := http.NewUserHandler(userService)
-
-	bookDomainService := dservice.NewBookService(bookRepo)
-	bookUseCaseFactory := usecases.NewBookUseCaseFactory(bookDomainService)
-	serviceFactory = service.NewServiceFactory(bookUseCaseFactory, nil)
-	bookService := serviceFactory.CreateBookService()
-	bookHandler := http.NewBookHandler(bookService)
 
 	router := gin.Default()
 	userHandler.RegisterRoutes(router, logger)
