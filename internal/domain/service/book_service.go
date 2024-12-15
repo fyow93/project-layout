@@ -13,7 +13,6 @@
 //   - **实体（Entity）**：实体是具有唯一标识的对象，包含业务逻辑和属性。
 //   - **值对象（Value Object）**：值对象是不可变的对象，通常用于描述领域中的某些属性。
 
-
 // Diagram:
 // 用例层 -> 领域服务层 -> 仓储层
 
@@ -24,26 +23,26 @@ import (
 	"project-layout/internal/domain/repository"
 )
 
-type DomainService struct {
-	repo repository.Repository
+type BookService struct {
+	repo repository.BookRepository
 }
 
-func NewDomainService(repo repository.Repository) *DomainService {
-	return &DomainService{repo: repo}
+func NewBookService(repo repository.BookRepository) *BookService {
+	return &BookService{repo: repo}
 }
 
-func (s *DomainService) Save(entity model.Entity) error {
-	return s.repo.Save(entity)
+func (s *BookService) Save(book model.Book) error {
+	return s.repo.Save(book)
 }
 
-func (s *DomainService) FindByID(id string) (*model.Entity, error) {
+func (s *BookService) FindByID(id string) (*model.Book, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *DomainService) Update(entity model.Entity) error {
-	return s.repo.Update(entity)
+func (s *BookService) Update(book model.Book) error {
+	return s.repo.Update(book)
 }
 
-func (s *DomainService) Delete(id string) error {
+func (s *BookService) Delete(id string) error {
 	return s.repo.Delete(id)
 }

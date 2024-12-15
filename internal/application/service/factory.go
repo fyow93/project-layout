@@ -5,15 +5,21 @@ import (
 )
 
 type ServiceFactory struct {
-	useCaseFactory *usecases.UseCaseFactory
+	bookUseCaseFactory *usecases.BookUseCaseFactory
+	userUseCaseFactory *usecases.UserUseCaseFactory
 }
 
-func NewServiceFactory(useCaseFactory *usecases.UseCaseFactory) *ServiceFactory {
-	return &ServiceFactory{useCaseFactory: useCaseFactory}
+func NewServiceFactory(bookUseCaseFactory *usecases.BookUseCaseFactory, userUseCaseFactory *usecases.UserUseCaseFactory) *ServiceFactory {
+	return &ServiceFactory{
+		bookUseCaseFactory: bookUseCaseFactory,
+		userUseCaseFactory: userUseCaseFactory,
+	}
 }
 
-func (f *ServiceFactory) CreateApplicationService() *ApplicationService {
-	return NewApplicationService(f.useCaseFactory.CreateUseCase())
+func (f *ServiceFactory) CreateBookService() *BookService {
+	return NewBookService(f.bookUseCaseFactory.CreateBookUseCase())
 }
 
-// 你可以在这里添加更多的服务初始化方法
+func (f *ServiceFactory) CreateUserService() *UserService {
+	return NewUserService(f.userUseCaseFactory.CreateUserUseCase())
+}

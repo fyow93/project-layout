@@ -24,64 +24,63 @@ import (
 	"go.uber.org/zap"
 )
 
-type Handler struct {
-	appService *service.ApplicationService
+type BookHandler struct {
+	appService *service.BookService
 }
 
-func NewHandler(appService *service.ApplicationService) *Handler {
-	return &Handler{appService: appService}
+func NewBookHandler(appService *service.BookService) *BookHandler {
+	return &BookHandler{appService: appService}
 }
 
-func (h *Handler) RegisterRoutes(router *gin.Engine, logger *zap.Logger) {
+func (h *BookHandler) RegisterRoutes(router *gin.Engine, logger *zap.Logger) {
 	router.Use(middleware.CORSMiddleware())
-	//router.Use(middleware.AuthMiddleware())
 	router.Use(middleware.LoggerMiddleware(logger))
 
-	router.GET("/entity/:id", h.GetEntity)
-	router.POST("/entity", h.CreateEntity)
-	router.PUT("/entity/:id", h.UpdateEntity)
-	router.DELETE("/entity/:id", h.DeleteEntity)
+	router.GET("/book/:id", h.GetBook)
+	router.POST("/book", h.CreateBook)
+	router.PUT("/book/:id", h.UpdateBook)
+	router.DELETE("/book/:id", h.DeleteBook)
 }
 
-func (h *Handler) GetEntity(c *gin.Context) {
+func (h *BookHandler) GetBook(c *gin.Context) {
 	id := c.Param("id")
-	entity, err := h.appService.ExecuteFindByID(id)
-	if (err != nil) {
+	book, err := h.appService.ExecuteFindByID(id)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, entity)
+	c.JSON(http.StatusOK, book)
 }
 
-func (h *Handler) CreateEntity(c *gin.Context) {
-	var entity model.Entity
-	if err := c.ShouldBindJSON(&entity); err != nil {
+func (h *BookHandler) CreateBook(c *gin.Context) {
+	var book model.Book
+	if err := c.ShouldBindJSON(&book); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.appService.ExecuteCreate(entity); err != nil {
+	if err := h.appService.ExecuteCreate(book); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "created"})
 }
 
-func (h *Handler) UpdateEntity(c *gin.Context) {
+func (h *BookHandler) UpdateBook(c *gin.Context) {
 	id := c.Param("id")
-	var entity model.Entity
-	if err := c.ShouldBindJSON(&entity); err != nil {
+	var book model.Book
+	if err := c.ShouldBindJSON(&book); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	entity.ID = id
-	if err := h.appService.ExecuteUpdate(entity); err != nil {
+	book.ID = id
+	if err := h.appService.ExecuteUpdate(book); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
-func (h *Handler) DeleteEntity(c *gin.Context) {
+func (h *BookHandler) DeleteBook(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.appService.ExecuteDelete(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

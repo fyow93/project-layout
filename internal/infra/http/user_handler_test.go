@@ -1,6 +1,7 @@
 package http
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"project-layout/internal/application/service"
@@ -16,13 +17,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func setupTestHandler(t *testing.T) *Handler {
-	db, err := repository.NewRepositoryImpl("file::memory:?cache=shared")
+func setupTestUserHandler(t *testing.T) *UserHandler {
+	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
 	if err != nil {
-		color.Red("Failed to initialize database: %v", err)
 		t.Fatalf("Failed to initialize database: %v", err)
 	}
-	err = db.Initialize()
+	repo := repository.NewUserRepositoryImpl(db)
+	err = repo.Initialize()
 	if err != nil {
 		color.Red("Failed to create table: %v", err)
 		t.Fatalf("Failed to create table: %v", err)
@@ -30,56 +31,55 @@ func setupTestHandler(t *testing.T) *Handler {
 
 	// Register cleanup function
 	t.Cleanup(func() {
-		db.DeleteAllEntities()
-		db.Shutdown()
+		repo.DeleteAllUsers()
+		repo.Shutdown()
 	})
 
-	domainService := dservice.NewDomainService(db)
-	useCaseFactory := usecases.NewUseCaseFactory(domainService)
-	serviceFactory := service.NewServiceFactory(useCaseFactory)
-	appService := serviceFactory.CreateApplicationService()
+	userService := dservice.NewUserService(repo)
+	useCase := usecases.NewUserUseCase(userService)
+	appService := service.NewUserService(useCase)
 
-	return NewHandler(appService)
+	return NewUserHandler(appService)
 }
 
-func TestHandler_GetEntity(t *testing.T) {
-	handler := setupTestHandler(t)
+func TestHandler_GetUser(t *testing.T) {
+	handler := setupTestUserHandler(t)
 	router := gin.Default()
 	logger, _ := zap.NewProduction()
 	handler.RegisterRoutes(router, logger)
 
-	// Create an entity to test retrieval via HTTP interface
-	entityJSON := `{"id":"1", "name":"Test Entity"}`
-	req, _ := http.NewRequest("POST", "/entity", strings.NewReader(entityJSON))
+	// Create a user to test retrieval via HTTP interface
+	userJSON := `{"id":"1", "name":"Test User", "email":"test@example.com"}`
+	req, _ := http.NewRequest("POST", "/user", strings.NewReader(userJSON))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	// Retrieve the entity via HTTP interface
-	req, _ = http.NewRequest("GET", "/entity/1", nil)
+	// Retrieve the user via HTTP interface
+	req, _ = http.NewRequest("GET", "/user/1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Test Entity")
+	assert.Contains(t, w.Body.String(), "Test User")
 
-	// Delete the entity via HTTP interface
-	req, _ = http.NewRequest("DELETE", "/entity/1", nil)
+	// Delete the user via HTTP interface
+	req, _ = http.NewRequest("DELETE", "/user/1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "deleted")
 }
 
-func TestHandler_CreateEntity(t *testing.T) {
-	handler := setupTestHandler(t)
+func TestHandler_CreateUser(t *testing.T) {
+	handler := setupTestUserHandler(t)
 	router := gin.Default()
 	logger, _ := zap.NewProduction()
 	handler.RegisterRoutes(router, logger)
 
-	entityJSON := `{"id":"1", "name":"Test Entity"}`
-	req, _ := http.NewRequest("POST", "/entity", strings.NewReader(entityJSON))
+	userJSON := `{"id":"1", "name":"Test User", "email":"test@example.com"}`
+	req, _ := http.NewRequest("POST", "/user", strings.NewReader(userJSON))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -87,53 +87,53 @@ func TestHandler_CreateEntity(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "created")
 
-	// Verify the entity was created via HTTP interface
-	req, _ = http.NewRequest("GET", "/entity/1", nil)
+	// Verify the user was created via HTTP interface
+	req, _ = http.NewRequest("GET", "/user/1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Test Entity")
+	assert.Contains(t, w.Body.String(), "Test User")
 
-	// Delete the entity via HTTP interface
-	req, _ = http.NewRequest("DELETE", "/entity/1", nil)
+	// Delete the user via HTTP interface
+	req, _ = http.NewRequest("DELETE", "/user/1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "deleted")
 }
 
-func TestHandler_UpdateEntity(t *testing.T) {
-	handler := setupTestHandler(t)
+func TestHandler_UpdateUser(t *testing.T) {
+	handler := setupTestUserHandler(t)
 	router := gin.Default()
 	logger, _ := zap.NewProduction()
 	handler.RegisterRoutes(router, logger)
 
-	// Create an entity to test update via HTTP interface
-	entityJSON := `{"id":"1", "name":"Test Entity"}`
-	req, _ := http.NewRequest("POST", "/entity", strings.NewReader(entityJSON))
+	// Create a user to test update via HTTP interface
+	userJSON := `{"id":"1", "name":"Test User", "email":"test@example.com"}`
+	req, _ := http.NewRequest("POST", "/user", strings.NewReader(userJSON))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	// Update the entity via HTTP interface
-	updatedEntityJSON := `{"name":"Updated Entity"}`
-	req, _ = http.NewRequest("PUT", "/entity/1", strings.NewReader(updatedEntityJSON))
+	// Update the user via HTTP interface
+	updatedUserJSON := `{"name":"Updated User", "email":"updated@example.com"}`
+	req, _ = http.NewRequest("PUT", "/user/1", strings.NewReader(updatedUserJSON))
 	req.Header.Set("Content-Type", "application/json")
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "updated")
 
-	// Verify the entity was updated via HTTP interface
-	req, _ = http.NewRequest("GET", "/entity/1", nil)
+	// Verify the user was updated via HTTP interface
+	req, _ = http.NewRequest("GET", "/user/1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Updated Entity")
+	assert.Contains(t, w.Body.String(), "Updated User")
 
-	// Delete the entity via HTTP interface
-	req, _ = http.NewRequest("DELETE", "/entity/1", nil)
+	// Delete the user via HTTP interface
+	req, _ = http.NewRequest("DELETE", "/user/1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)

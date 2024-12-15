@@ -11,8 +11,6 @@
 //   - **用例（Use Case）**：用例层负责定义应用程序的业务逻辑。它协调领域服务来完成具体的业务操作。用例层的逻辑通常是跨领域对象的操作，或者是多个领域服务的协调。
 //   - **业务逻辑**：用例层的业务逻辑通常是高层次的业务流程，例如验证输入数据、调用多个领域服务、处理事务等。
 
-
-
 // Diagram:
 // 应用服务层 -> 用例层 -> 领域服务层
 
@@ -24,46 +22,46 @@ import (
 	"project-layout/internal/domain/service"
 )
 
-type UseCase struct {
-	domainService *service.DomainService
+type BookUseCase struct {
+	bookService *service.BookService
 }
 
-func NewUseCase(domainService *service.DomainService) *UseCase {
-	return &UseCase{domainService: domainService}
+func NewBookUseCase(domainService *service.BookService) *BookUseCase {
+	return &BookUseCase{bookService: domainService}
 }
 
-func (u *UseCase) FindByID(id string) (*model.Entity, error) {
+func (u *BookUseCase) FindByID(id string) (*model.Book, error) {
 	// 业务逻辑：检查ID格式
 	if !isValidID(id) {
 		return nil, errors.New("无效的ID格式")
 	}
-	entity, err := u.domainService.FindByID(id)
+	book, err := u.bookService.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
 	// 业务逻辑：检查实体是否活跃
-	if !entity.IsActive {
+	if !book.IsActive {
 		return nil, errors.New("实体未激活")
 	}
-	return entity, nil
+	return book, nil
 }
 
-func (u *UseCase) Create(entity model.Entity) error {
+func (u *BookUseCase) Create(entity model.Book) error {
 	// 业务逻辑：验证实体
 	if err := validateEntity(entity); err != nil {
 		return err
 	}
 	// 业务逻辑：检查实体是否已存在
-	existingEntity, _ := u.domainService.FindByID(entity.ID)
+	existingEntity, _ := u.bookService.FindByID(entity.ID)
 	if existingEntity != nil {
 		return errors.New("实体已存在")
 	}
-	return u.domainService.Save(entity)
+	return u.bookService.Save(entity)
 }
 
-func (u *UseCase) Update(entity model.Entity) error {
+func (u *BookUseCase) Update(entity model.Book) error {
 	// 业务逻辑：检查实体是否存在
-	existingEntity, err := u.domainService.FindByID(entity.ID)
+	existingEntity, err := u.bookService.FindByID(entity.ID)
 	if err != nil {
 		return err
 	}
@@ -74,12 +72,12 @@ func (u *UseCase) Update(entity model.Entity) error {
 	if err := validateEntity(entity); err != nil {
 		return err
 	}
-	return u.domainService.Update(entity)
+	return u.bookService.Update(entity)
 }
 
-func (u *UseCase) Delete(id string) error {
+func (u *BookUseCase) Delete(id string) error {
 	// 业务逻辑：检查实体是否存在
-	entity, err := u.domainService.FindByID(id)
+	entity, err := u.bookService.FindByID(id)
 	if err != nil {
 		return err
 	}
@@ -90,12 +88,12 @@ func (u *UseCase) Delete(id string) error {
 	if !entity.CanBeDeleted {
 		return errors.New("实体不能删除")
 	}
-	return u.domainService.Delete(id)
+	return u.bookService.Delete(id)
 }
 
 // 辅助函数：验证实体
-func validateEntity(entity model.Entity) error {
-	if entity.Name == "" {
+func validateEntity(entity model.Book) error {
+	if entity.Title == "" {
 		return errors.New("实体名称不能为空")
 	}
 	// 添加更多验证规则
@@ -106,4 +104,16 @@ func validateEntity(entity model.Entity) error {
 func isValidID(id string) bool {
 	// 示例：检查ID是否为UUID格式
 	return len(id) == 36
+}
+
+type BookUseCaseFactory struct {
+	domainService *service.BookService
+}
+
+func NewBookUseCaseFactory(domainService *service.BookService) *BookUseCaseFactory {
+	return &BookUseCaseFactory{domainService: domainService}
+}
+
+func (f *BookUseCaseFactory) CreateBookUseCase() *BookUseCase {
+	return NewBookUseCase(f.domainService)
 }
