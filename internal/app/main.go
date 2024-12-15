@@ -39,5 +39,7 @@ func main() {
 	router := gin.Default()
 	handler.RegisterRoutes(router, logger)
 
-	router.Run(":8080")
+	if err := router.Run(":8080"); err != nil {
+		logger.Fatal("Failed to run server", zap.Error(err))
+	}
 }
