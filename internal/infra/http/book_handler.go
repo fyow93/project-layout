@@ -25,31 +25,55 @@ import (
 	"go.uber.org/zap"
 )
 
+// BookHandler 处理与书籍相关的 HTTP 请求
+// 它作为应用程序和外部世界之间的接口层
 type BookHandler struct {
-	appService *service.BookService
+	appService *service.BookService // 应用服务层引用
 }
 
+// NewBookHandler 创建新的书籍处理器
+// 参数:
+//   - appService: 书籍应用服务实例
+//
+// 返回:
+//   - *BookHandler: 新创建的书籍处理器
 func NewBookHandler(appService *service.BookService) *BookHandler {
 	return &BookHandler{appService: appService}
 }
 
+// RegisterRoutes 注册所有书籍相关的路由到 Gin 路由器
+// 参数:
+//   - router: Gin 路由引擎
+//   - logger: 日志记录器
 func (h *BookHandler) RegisterRoutes(router *gin.Engine, logger *zap.Logger) {
-	router.Use(middleware.CORSMiddleware())
-	router.Use(middleware.LoggerMiddleware(logger))
+	// 添加全局中间件
+	router.Use(middleware.CORSMiddleware())         // 跨域资源共享中间件
+	router.Use(middleware.LoggerMiddleware(logger)) // 日志中间件
 
-	router.GET("/book/:id", h.GetBook)
-	router.POST("/book", h.CreateBook)
-	router.PUT("/book/:id", h.UpdateBook)
-	router.DELETE("/book/:id", h.DeleteBook)
+	// 注册书籍相关的 RESTful API 路由
+	router.GET("/book/:id", h.GetBook)       // 获取单本书籍
+	router.POST("/book", h.CreateBook)       // 创建新书籍
+	router.PUT("/book/:id", h.UpdateBook)    // 更新书籍
+	router.DELETE("/book/:id", h.DeleteBook) // 删除书籍
 }
 
+// GetBook 处理获取单本书籍的 HTTP 请求
+// 对应 GET /book/:id 路由
+// 参数:
+//   - c: Gin 上下文
 func (h *BookHandler) GetBook(c *gin.Context) {
+	// 从 URL 路径中获取书籍 ID
 	id := c.Param("id")
+
+	// 调用应用服务层查找书籍
 	book, err := h.appService.ExecuteFindByID(id)
 	if err != nil {
+		// 如果发生错误，返回 500 状态码和错误信息
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// 成功找到书籍，返回 200 状态码和书籍数据
 	c.JSON(http.StatusOK, book)
 }
 

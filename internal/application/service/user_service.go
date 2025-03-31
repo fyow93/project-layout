@@ -7,28 +7,43 @@
 package service
 
 import (
+	"project-layout/internal/application/assembler"
+	"project-layout/internal/application/dto"
 	"project-layout/internal/application/usecases"
-	"project-layout/internal/domain/model"
 )
 
 type UserService struct {
-	useCase *usecases.UserUseCase
+	useCase    *usecases.UserUseCase
+	assembler  *assembler.UserAssembler
 }
 
 func NewUserService(useCase *usecases.UserUseCase) *UserService {
-	return &UserService{useCase: useCase}
+	return &UserService{
+		useCase:    useCase,
+		assembler:  &assembler.UserAssembler{},
+	}
 }
 
-func (s *UserService) ExecuteFindByID(id string) (*model.User, error) {
-	return s.useCase.FindByID(id)
+func (s *UserService) ExecuteFindByID(id string) (*dto.UserDTO, error) {
+	user, err := s.useCase.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return s.assembler.ToDTO(user), nil
 }
 
-func (s *UserService) ExecuteCreate(user model.User) error {
-	return s.useCase.Create(user)
+func (s *UserService) ExecuteCreate(createDTO dto.CreateUserDTO) error {
+	user := s.assembler.ToModel(&createDTO)
+	return s.useCase.Create(*user)
 }
 
-func (s *UserService) ExecuteUpdate(user model.User) error {
-	return s.useCase.Update(user)
+func (s *UserService) ExecuteUpdate(id string, updateDTO dto.UpdateUserDTO) error {
+	user, err := s.useCase.FindByID(id)
+	if err != nil {
+		return err
+	}
+	s.assembler.UpdateModel(user, &updateDTO)
+	return s.useCase.Update(*user)
 }
 
 func (s *UserService) ExecuteDelete(id string) error {

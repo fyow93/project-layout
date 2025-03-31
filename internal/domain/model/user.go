@@ -6,8 +6,7 @@
 package model
 
 type User struct {
-    ID    string
-    Name  string
-    Email string
+	ID    string
+	Name  string
+	Email string
 }
-

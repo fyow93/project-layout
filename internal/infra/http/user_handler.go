@@ -8,8 +8,8 @@ package http
 
 import (
 	"net/http"
+	"project-layout/internal/application/dto"
 	"project-layout/internal/application/service"
-	"project-layout/internal/domain/model"
 	"project-layout/internal/infra/http/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -46,12 +46,13 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	var user model.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+	var createDTO dto.CreateUserDTO
+	if err := c.ShouldBindJSON(&createDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.appService.ExecuteCreate(user); err != nil {
+
+	if err := h.appService.ExecuteCreate(createDTO); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -60,13 +61,13 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
 	id := c.Param("id")
-	var user model.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+	var updateDTO dto.UpdateUserDTO
+	if err := c.ShouldBindJSON(&updateDTO); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	user.ID = id
-	if err := h.appService.ExecuteUpdate(user); err != nil {
+
+	if err := h.appService.ExecuteUpdate(id, updateDTO); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
